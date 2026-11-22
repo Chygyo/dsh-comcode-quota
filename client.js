@@ -1756,12 +1756,8 @@ window.__ModuleLoader__.load({
           'span',
           { className: 'ccq_topMetaItem' },
           h('span', { className: 'ccq_topMetaKey' }, t('overview.account')),
-          h(
-            'span',
-            { className: 'ccq_topMetaVal' },
-            account.name || account.userName || '—',
-            account.email ? h('span', { className: 'ccq_hint' }, ' · ' + account.email) : null,
-          ),
+          // 只显示邮箱：名字在顶部副标题里已经有了，这里再写一遍是重复。
+          h('span', { className: 'ccq_topMetaVal' }, account.email || account.userName || account.name || '—'),
         ),
         stale
           ? h('span', { className: 'ccq_topMetaVal', 'data-tone': 'warn' }, t('overview.stale', { age: duration(ageMs) }))
