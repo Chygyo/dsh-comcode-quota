@@ -6,12 +6,21 @@ This is a DSH re-host of the desktop app [`cc-quota-monitor`](https://github.com
 
 ## Install
 
-Either way:
+**Recommended: one-click tarball** (no clone, no dependencies, no build)
 
-- **GUI**: open **Plugins** in the sidebar → add plugin → pick the local directory `~/.dsh/bundles/dsh-comcode-quota`.
-- **Agent**: call `plugin_manager` with the `install_bundle` action and the absolute package directory as `target`.
+Paste this URL into **Plugins → Add plugin** in DSH:
+
+```
+https://github.com/Chygyo/dsh-comcode-quota/releases/download/v1.0.0/dsh-comcode-quota.tgz
+```
+
+Or have an agent call `plugin_manager` with `action: install_bundle` and that same URL as `target`. The plugin is dependency-free plain JS and works as soon as it is enabled.
+
+**Developer route**: clone the repo and pass the package directory as `target`, or drop the directory at `~/.dsh/bundles/dsh-comcode-quota` and install from there.
 
 After enabling, a **Quota** row appears in the sidebar below Skill explorer. Client-side edits to `client.js` need the plugin toggled off and on again to reload.
+
+> If install reports an unsatisfied `engines.dsh`: this plugin needs DSH ≥ 0.2.2-rc.3. Older harness versions lack the `sidebar.panellist` panel slot, so the entry would never show up.
 
 ## Credentials
 

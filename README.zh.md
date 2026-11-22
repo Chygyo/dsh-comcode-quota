@@ -6,12 +6,21 @@
 
 ## 安装
 
-两种方式，任选其一：
+**推荐：tarball 一键安装**（不用 clone、不用装依赖、不用构建）
 
-- **GUI**：打开侧边栏「插件」→ 添加插件 → 选本地目录 `~/.dsh/bundles/dsh-comcode-quota`。
-- **命令行**：让 agent 用 `plugin_manager` 的 `install_bundle` 动作，`target` 传包目录的绝对路径。
+把下面这个地址粘到 DSH 的「插件 → 添加插件」里：
+
+```
+https://github.com/Chygyo/dsh-comcode-quota/releases/download/v1.0.0/dsh-comcode-quota.tgz
+```
+
+或者让 agent 执行 `plugin_manager`，`action: install_bundle`，`target` 填同一个地址。插件是零依赖纯 JS，装完即用。
+
+**开发者方式**：clone 仓库后，`target` 传包目录的绝对路径；或把目录放到 `~/.dsh/bundles/dsh-comcode-quota` 再装。
 
 装好后侧边栏「技能中心」下面会出现一行「额度」。改动 `client.js` 后需要在插件页里关掉再打开一次才会重载。
+
+> 若安装时提示 `engines.dsh` 不满足：本插件要求 DSH ≥ 0.2.2-rc.3。低于这个版本的 harness 缺 `sidebar.panellist` 面板座位，装上也不会出现入口。
 
 ## 凭据
 
