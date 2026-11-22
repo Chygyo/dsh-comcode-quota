@@ -690,9 +690,9 @@ window.__ModuleLoader__.load({
 .ccq_tableInner{min-width:720px}
 /* 按模型用量表：模型 / 请求数 / TOKEN / 占比条，列比价目表少，单独一套模板 */
 .ccq_tableModel{max-height:none}
-.ccq_tableInnerModel{min-width:620px}
+.ccq_tableInnerModel{min-width:640px}
 /* 列宽分配的三条约束：
-   1. 模型名最长有 deepseek-v4.1-flash-ultrafast 这种 30 字符，给它最大的弹性（2.6fr）；
+   1. 模型名最长有 deepseek-v4.1-flash-ultrafast 这种 28 字符，给 170–300px 的区间就够；
    2. 「请求数」和「TOKEN 数」是一组相关数字，两者之间不该有大片空白 —— 用一块
       宽度固定的 .ccq_numGroup 把这两列裹起来，列间距由 grid 管、组内间距由 group 管；
    3. 占比条要给足长度才有辨析度（29% 和 24% 在 100px 轨道上几乎看不出差别），
@@ -700,7 +700,9 @@ window.__ModuleLoader__.load({
    请求数/TOKEN 两列右对齐：数字位数不一（9 / 3,177），右对齐后个位对齐才好扫读。 */
 /* 注意选择器带 .ccq_tableModel 前缀：.ccq_th / .ccq_tr 的通用模板写在下面几行，
    同为单类选择器时后写的会赢，只写 .ccq_thModel 会被静默覆盖成价目表的 6 列模板。 */
-.ccq_tableModel .ccq_th.ccq_thModel,.ccq_tableModel .ccq_tr.ccq_trModel{grid-template-columns:minmax(180px,2.6fr) auto minmax(300px,1fr);column-gap:20px}
+/* 模型列给上限 300px 而不是按 fr 分：用 fr 的话宽窗口下它会一路吃掉所有剩余空间，
+   把请求数/TOKEN 甩到面板最右边，中间留一大片空白。 */
+.ccq_tableModel .ccq_th.ccq_thModel,.ccq_tableModel .ccq_tr.ccq_trModel{grid-template-columns:minmax(170px,300px) auto minmax(260px,1fr);column-gap:16px}
 /* 数字组：请求数 + TOKEN 数，两者靠拢成一组，内部只留 12px */
 .ccq_numGroup{display:grid;grid-template-columns:minmax(62px,auto) minmax(88px,auto);column-gap:12px;align-items:center}
 /* 表头也要右对齐，才能和下面右对齐的数字同一条视觉边线 */
@@ -711,9 +713,13 @@ window.__ModuleLoader__.load({
 /* 占比条的第 0 像素必须落在「额度占比」这一列的第 0 像素上，
    所以这里不留左内边距；条与数字之间的呼吸由 column-gap 负责 */
 .ccq_cShare{display:flex;align-items:center;gap:9px;min-width:0}
-.ccq_cShareBar{flex:1 1 auto;min-width:300px;height:8px;border-radius:4px;background:var(--dsw-alias-interactive-bg-hover);overflow:hidden}
+/* 轨道不设硬下限：列宽由 grid 的 minmax 决定，轨道只需吃掉列内剩余空间。
+   早先这里写 min-width:300px，加上右侧 46px 的百分比数字就超出列宽，
+   在窄一点的窗口里数字直接被面板右边界裁掉（只剩「34.」这种半截值）。 */
+.ccq_cShareBar{flex:1 1 auto;min-width:60px;height:8px;border-radius:4px;background:var(--dsw-alias-interactive-bg-hover);overflow:hidden}
 .ccq_cShareFill{height:100%;border-radius:4px;background:var(--dsw-alias-chart-tools);opacity:.72}
-.ccq_cShareText{flex:none;width:46px;text-align:right;font-size:11.5px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+/* 不用固定宽度：'100.0%' 比 '0.0%' 宽，写死 46px 会挤掉轨道或在极窄窗口溢出 */
+.ccq_cShareText{flex:none;min-width:38px;text-align:right;font-size:11.5px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;white-space:nowrap}
 .ccq_th,.ccq_tr{display:grid;grid-template-columns:minmax(170px,1.7fr) repeat(4,minmax(76px,0.85fr)) minmax(88px,0.9fr);align-items:center;gap:14px}
 /* 表头与表体必须用同一套左右内边距：列宽由 grid 决定，只要左右 padding 不同，
    内容的左边界就会比表头文字偏移几个像素，看起来像没对齐 */
