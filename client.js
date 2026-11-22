@@ -109,7 +109,7 @@ window.__ModuleLoader__.load({
       'overview.updated': '更新于 {age} 前',
       'stats.tokens': 'TOKEN 总数',
       'stats.requests': '运行总次数',
-      'stats.coverage': '本周期内 {hit} 天有记录（共 {total} 天）。',
+      'stats.coverage': '本周期内已用 {hit} 天（共 {total} 天）。',
       'stats.noDaily': '本周期还没有按天的记录 —— 面板开着就会自动累积。',
       'stats.cloud': 'CLOUD',
       'stats.minThisMonth': '分钟（本月）',
@@ -273,7 +273,7 @@ window.__ModuleLoader__.load({
       'overview.updated': 'Updated {age} ago',
       'stats.tokens': 'Total tokens',
       'stats.requests': 'Total requests',
-      'stats.coverage': 'Data for {hit} of {total} days so far.',
+      'stats.coverage': 'Used on {hit} of {total} days this period.',
       'stats.noDaily': 'No per-day data in this period yet — it accumulates while the panel runs.',
       'stats.cloud': 'CLOUD',
       'stats.minThisMonth': 'min this month',
@@ -1124,6 +1124,13 @@ window.__ModuleLoader__.load({
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
 
+    // 官方 /internal/usage/summary 的 daily 是按 UTC 日切的，用本地日切会整体错位一天，
+    // 柱子就落到隔壁槽里。凡是数据来自官方接口的卡都用这个键。
+    function dayKeyUTC(ts) {
+      var d = new Date(Number(ts));
+      return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+    }
+
     /**
      * 一张统计卡：标签 + 大数字 + 按天迷你柱状图 + 起止日期。
      * 柱子按「计费周期内每一天」等分排布，没数据的天只留一条虚线基线 ——
@@ -1146,20 +1153,25 @@ window.__ModuleLoader__.load({
         function () {
           if (!isFinite(periodStart) || !isFinite(periodEnd) || periodEnd <= periodStart) return [];
           var out = [];
-          // 按本地零点切天，避免时区偏移把柱子挪到前一格
+          var utc = !!props.utc;
           var cursor = new Date(periodStart);
-          cursor.setHours(0, 0, 0, 0);
+          if (utc) {
+            cursor.setUTCHours(0, 0, 0, 0);
+          } else {
+            cursor.setHours(0, 0, 0, 0);
+          }
           var guard = 0;
           while (cursor.getTime() <= periodEnd && guard < 400) {
-            var key = dayKey(cursor.getTime());
+            var key = utc ? dayKeyUTC(cursor.getTime()) : dayKey(cursor.getTime());
             var hit = byDay[key];
             out.push({ date: key, value: hit ? Number(hit[props.field]) || 0 : 0 });
-            cursor.setDate(cursor.getDate() + 1);
+            if (utc) cursor.setUTCDate(cursor.getUTCDate() + 1);
+            else cursor.setDate(cursor.getDate() + 1);
             guard++;
           }
           return out;
         },
-        [periodStart, periodEnd, byDay, props.field],
+        [periodStart, periodEnd, byDay, props.field, props.utc],
       );
 
       // CLOUD 卡是装饰性的：官网用一排等高色块表示「按分钟计费」，不随用量高低变化，
@@ -1303,12 +1315,24 @@ window.__ModuleLoader__.load({
       if (isFinite(periodStart) && isFinite(periodEnd) && periodEnd > periodStart) {
         totalDays = Math.round((periodEnd - periodStart) / 86400000);
       }
+      // 已过去几天：按 UTC 日算，跟柱子的切天口径保持同一条线；
+      // 用「有数据的天数」会误导（没用量的一天也是过去的一天）。
+      var elapsedDays = 0;
+      if (isFinite(periodStart) && periodStart > 0) {
+        var startDay = Math.floor(periodStart / 86400000);
+        var todayDay = Math.floor(Date.now() / 86400000);
+        elapsedDays = Math.max(0, Math.min(totalDays || 999, todayDay - startDay + 1));
+      }
       // 只在数据没说全时才提示，别每张卡都重复一遍
       var note = null;
       if (!hitDays) note = t('stats.noDaily');
-      else if (totalDays > hitDays + 1) note = t('stats.coverage', { hit: hitDays, total: totalDays });
+      else if (totalDays > elapsedDays + 1) note = t('stats.coverage', { hit: hitDays, total: totalDays });
 
-      if (usage.totalTokens == null && usage.totalCount == null) return null;
+      // 大数字优先用官方 summary 的总量：它和下面那排柱子同源，
+      // 用 /alpha 的另一个口径会出现「柱子加起来 ≠ 大数字」的错位（两次抓取之间差几分钟）。
+      var totalTok = daily.totalTokens != null ? daily.totalTokens : usage.totalTokens;
+      var totalReq = daily.totalRequests != null ? daily.totalRequests : usage.totalCount;
+      if (totalTok == null && totalReq == null) return null;
 
       // 第三张卡：云端沙箱按分钟计费，自然月重置（和账单周期不是一个口径）
       var sb = snap.sandbox || null;
@@ -1347,19 +1371,21 @@ window.__ModuleLoader__.load({
           h(StatCard, {
             field: 'tok',
             label: 'stats.tokens',
-            value: compact(usage.totalTokens),
+            value: compact(totalTok),
             days: days,
             periodStart: periodStart,
             periodEnd: periodEnd,
+            utc: true,
           }),
           h(StatCard, {
             field: 'req',
             label: 'stats.requests',
-            value: num(usage.totalCount, 0),
+            value: num(totalReq, 0),
             days: days,
             periodStart: periodStart,
             periodEnd: periodEnd,
             tone: 'amber',
+            utc: true,
           }),
           sbCard,
         ),
@@ -1636,9 +1662,10 @@ window.__ModuleLoader__.load({
             : null,
         ),
         h('span', { className: 'ccq_spacer' }),
+        // 这条通道（浏览器 cookie）的抓取时刻和额度快照不同，所以时间显示在本页自己这里，
+        // 不放到所有 tab 共用的副标题上。
         meta.at ? h('span', { className: 'ccq_hint' }, t('byModel.updated', { age: duration(Date.now() - meta.at) })) : null,
-        // 这里不再放自己的刷新按钮：顶部那个「刷新」已经是全量刷新（额度 + 模型用量），
-        // 同一屏出现两个刷新按钮只会让人不知道该点哪个。
+        // 这页不放自己的刷新按钮：顶部那个「刷新」已经是全量刷新（额度 + 模型用量）。
       );
 
       var content;
@@ -1719,7 +1746,9 @@ window.__ModuleLoader__.load({
       var cred = (state && state.meta && state.meta.credential) || null;
       var noCred = cred && cred.ok === false;
 
-      // 顶部一行：账号 + 最近拉取（过去散在底部明细里，占了两行）
+      // 本页一行：左边账号，右边抓取时刻——和模型用量页工具栏同一套排布（左内容 / 右时间）
+      // 与同一条样式。时间必须留在各自页面里：模型用量走浏览器 cookie，是另一条通道，
+      // 抓取时刻天然不同，放到所有 tab 共用的头部会来回跳。
       var topBar = h(
         'div',
         { className: 'ccq_topMeta' },
@@ -1734,20 +1763,13 @@ window.__ModuleLoader__.load({
             account.email ? h('span', { className: 'ccq_hint' }, ' · ' + account.email) : null,
           ),
         ),
-        h(
-          'span',
-          { className: 'ccq_topMetaItem' },
-          h('span', { className: 'ccq_topMetaKey' }, t('diagnostics.lastFetch')),
-          h(
-            'span',
-            { className: 'ccq_topMetaVal' },
-            (snap.fetchedAt ? hourLabel(Date.parse(snap.fetchedAt)) : '—') +
-              (snap.latencyMs !== undefined ? ' · ' + snap.latencyMs + 'ms' : ''),
-          ),
-        ),
         stale
           ? h('span', { className: 'ccq_topMetaVal', 'data-tone': 'warn' }, t('overview.stale', { age: duration(ageMs) }))
           : null,
+        h('span', { className: 'ccq_spacer' }),
+        snap.fetchedAt
+          ? h('span', { className: 'ccq_hint' }, t('byModel.updated', { age: duration(ageMs) }))
+          : h('span', { className: 'ccq_hint' }, t('panel.never')),
       );
 
       return h(
@@ -2793,7 +2815,9 @@ window.__ModuleLoader__.load({
       var subParts = [];
       if (snap && snap.plan && (snap.plan.name || snap.plan.planId)) subParts.push(snap.plan.name || snap.plan.planId);
       if (snap && snap.account && (snap.account.name || snap.account.userName)) subParts.push(snap.account.name || snap.account.userName);
-      subParts.push(snap && snap.fetchedAt ? t('overview.updated', { age: duration(Date.now() - Date.parse(snap.fetchedAt)) }) : t('panel.never'));
+      // 顶部这行是所有 tab 共用的，不能放更新时间：额度快照和模型用量是两条独立通道
+      // （一个 apiKey、一个浏览器 cookie），抓取时刻天然不同，放在共用位置会来回跳。
+      // 各页面在自己的内容里显示自己的时间。
 
       var body;
       if (error && !state) {
@@ -2836,6 +2860,8 @@ window.__ModuleLoader__.load({
               { type: 'button', className: 'ccq_btn ccq_btnPrimary', onClick: refresh, disabled: refreshing },
               refreshing ? t('panel.refreshing') : t('panel.refresh'),
             ),
+            // 更新时间只在标题下方那行副标题里显示一处：
+            // 这里再放一个「x 秒前更新」会和它重复（同一屏两个相对时间只会让人困惑）。
           ),
         ),
         // 错误信息放在头部按钮旁会把标题挤成 0 宽并让面板横向溢出（长接口报错时更糟），

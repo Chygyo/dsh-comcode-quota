@@ -19,7 +19,7 @@ import { Store, DSH_HOME } from './lib/store.js';
 import { computeDerived, dailySeries, pushSample, sandboxSeries } from './lib/derive.js';
 import { load as loadPricing, decorate as decoratePricing, requestCost } from './lib/pricing.js';
 import { isLoopbackRequest, writeJson, readBody } from './lib/guard.js';
-import { fetchByModel, probeSession } from './lib/usagemodel.js';
+import { fetchByModel, fetchDailyUsage, probeSession } from './lib/usagemodel.js';
 import { sessionInfo } from './lib/websession.js';
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
@@ -46,6 +46,8 @@ class QuotaService {
     this.byModel = null;
     this.byModelError = null;
     this.byModelAt = 0;
+    // 官方按天用量（cookie 通道）。拿不到时 buildState 会退回本地采样推出的 dailySeries。
+    this.dailyOfficial = null;
     this.byModelRefreshing = false;
     this.lastError = null;
     this.refreshing = false;
@@ -148,8 +150,19 @@ class QuotaService {
     const age = Date.now() - this.byModelAt;
     if (reason === 'auto' && this.byModel && age < 60 * 1000) return { ok: true, skipped: true };
     this.byModelRefreshing = true;
+    const timeout = Math.max(5000, Number(this.settings().requestTimeoutMs) || 15000);
     try {
-      const res = await fetchByModel({ timeout: Math.max(5000, Number(this.settings().requestTimeoutMs) || 15000) });
+      // 按天用量和按模型用量走同一条 cookie 通道，同一个节拍一起拉，省一次钥匙串解锁。
+      const [res, daily] = await Promise.all([
+        fetchByModel({ timeout }),
+        fetchDailyUsage({ timeout }),
+      ]);
+      if (daily.ok && daily.days.length) {
+        // 官方 daily 只给 periodStart，不给 periodEnd；柱状图要靠两者算槽位，
+        // 这里补上当前订阅周期的结束时间（同一份 snapshot 里的值，口径一致）。
+        const snapEnd = this.snapshot?.plan?.currentPeriodEnd ? Date.parse(this.snapshot.plan.currentPeriodEnd) : null;
+        this.dailyOfficial = { ...daily, periodEnd: Number.isFinite(snapEnd) ? snapEnd : null };
+      }
       if (res.ok) {
         this.byModel = res.data;
         this.byModelError = null;
@@ -198,8 +211,10 @@ class QuotaService {
     return {
       snapshot: this.snapshot,
       derived: this.derived,
-      // 本计费周期内按天的用量增量（mini 柱状图数据源）
-      daily: dailySeries(this.store, this.snapshot),
+      // 本计费周期内按天的用量（mini 柱状图数据源）。
+      // 优先用官方 /internal/usage/summary 的 daily：它覆盖整个账单周期，
+      // 而本地采样只能从装机那一刻开始，跨天时会退化成「只有今天一根柱子」。
+      daily: this.dailyOfficial || dailySeries(this.store, this.snapshot),
       // 云端沙箱按天分钟数（自然月口径，独立于账单周期）
       sandboxDaily: sandboxSeries(this.store, this.snapshot),
       // 按模型用量（浏览器 cookie 通道；可能为 null —— 未登录/过期时 UI 要能降级）

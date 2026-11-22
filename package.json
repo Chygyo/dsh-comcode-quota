@@ -1,7 +1,7 @@
 {
   "name": "dsh-comcode-quota",
   "description": "Command Code (GOAT) quota monitor inside DeepSeek Harness: 5-hour / weekly / monthly credit windows, burn-rate projection, model pricing calculator and sampling history.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "icon": "icon.svg",
   "type": "module",
   "main": "index.js",
