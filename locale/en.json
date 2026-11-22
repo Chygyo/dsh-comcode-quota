@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Command Code quota",
+    "description": "Track your Command Code (GOAT) credit usage inside Harness: the 5-hour, weekly and monthly windows with remaining credit, reset countdown and burn-rate projection, plus a model price calculator and this period's token/request totals plus cloud sandbox minutes. Open it from the “Quota” icon in the sidebar. The panel only reads the Command Code billing API with the key the harness process already holds; it never sends data anywhere else. If you turn it off, the quota panel and its background sampling stop. It can also break spend down per model (requests, tokens, credit share), which needs a signed-in commandcode.ai session in your browser.",
+    "detail": "docs/DETAIL.md"
+  }
+}

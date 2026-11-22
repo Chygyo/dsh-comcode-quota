@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Command Code 额度监控",
+    "description": "在 Harness 里盯住你的 Command Code（GOAT）额度：5 小时 / 每周 / 每月三个窗口的剩余额度、重置倒计时和消耗速度预测，外加模型价目表和本期 TOKEN／请求总量（含云端沙箱本月分钟数）。从侧边栏的「额度」图标打开。面板只会用宿主进程已持有的 Key 读取 Command Code 计费接口，不会把数据发到别处。关掉后额度面板和它的后台采样都会停止。另外还能按模型看真实消耗（请求数、TOKEN 数、额度占比），需要浏览器里登录过 commandcode.ai。",
+    "detail": "docs/DETAIL.zh.md"
+  }
+}

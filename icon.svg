@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- 外圈：额度环（3/4 圈，缺口在右下，暗示"剩余"） -->
+  <path d="M 256 96 A 160 160 0 1 1 161 383" stroke="#4d6bfe" stroke-width="44" stroke-linecap="round" opacity="0.22"/>
+  <!-- 已用部分 -->
+  <path d="M 256 96 A 160 160 0 0 1 396 352" stroke="#4d6bfe" stroke-width="44" stroke-linecap="round"/>
+  <!-- 指针：从中心指向约 45° -->
+  <path d="M 256 272 L 352 180" stroke="#4d6bfe" stroke-width="30" stroke-linecap="round"/>
+  <!-- 中心轴 -->
+  <circle cx="256" cy="272" r="30" fill="#4d6bfe"/>
+  <!-- 底部三条刻度：5h / 周 / 月 -->
+  <rect x="176" y="404" width="48" height="20" rx="10" fill="#4d6bfe"/>
+  <rect x="232" y="404" width="48" height="20" rx="10" fill="#4d6bfe" opacity="0.6"/>
+  <rect x="288" y="404" width="48" height="20" rx="10" fill="#4d6bfe" opacity="0.35"/>
+</svg>
