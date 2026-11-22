@@ -690,10 +690,24 @@ window.__ModuleLoader__.load({
 .ccq_tableInner{min-width:720px}
 /* 按模型用量表：模型 / 请求数 / TOKEN / 占比条，列比价目表少，单独一套模板 */
 .ccq_tableModel{max-height:none}
-.ccq_tableInnerModel{min-width:680px}
-/* 占比条要给足长度才有辨析度：29% 和 24% 在 100px 的轨道上几乎看不出差别，
-   所以把这一列的权重拉到其它列的 3 倍左右，轨道自然长到 300px 上下 */
-.ccq_thModel,.ccq_trModel{grid-template-columns:minmax(150px,1.5fr) minmax(64px,0.5fr) minmax(80px,0.55fr) minmax(400px,3.6fr);column-gap:26px}
+.ccq_tableInnerModel{min-width:620px}
+/* 列宽分配的三条约束：
+   1. 模型名最长有 deepseek-v4.1-flash-ultrafast 这种 30 字符，给它最大的弹性（2.6fr）；
+   2. 「请求数」和「TOKEN 数」是一组相关数字，两者之间不该有大片空白 —— 用一块
+      宽度固定的 .ccq_numGroup 把这两列裹起来，列间距由 grid 管、组内间距由 group 管；
+   3. 占比条要给足长度才有辨析度（29% 和 24% 在 100px 轨道上几乎看不出差别），
+      所以把它留在最后、吃掉所有剩余宽度（minmax(300px,1fr)）。
+   请求数/TOKEN 两列右对齐：数字位数不一（9 / 3,177），右对齐后个位对齐才好扫读。 */
+/* 注意选择器带 .ccq_tableModel 前缀：.ccq_th / .ccq_tr 的通用模板写在下面几行，
+   同为单类选择器时后写的会赢，只写 .ccq_thModel 会被静默覆盖成价目表的 6 列模板。 */
+.ccq_tableModel .ccq_th.ccq_thModel,.ccq_tableModel .ccq_tr.ccq_trModel{grid-template-columns:minmax(180px,2.6fr) auto minmax(300px,1fr);column-gap:20px}
+/* 数字组：请求数 + TOKEN 数，两者靠拢成一组，内部只留 12px */
+.ccq_numGroup{display:grid;grid-template-columns:minmax(62px,auto) minmax(88px,auto);column-gap:12px;align-items:center}
+/* 表头也要右对齐，才能和下面右对齐的数字同一条视觉边线 */
+.ccq_numGroup > :first-child,.ccq_numGroupHead > :first-child{text-align:right;justify-self:end}
+.ccq_numGroup > :last-child,.ccq_numGroupHead > :last-child{text-align:right;justify-self:end}
+.ccq_numGroupHead .ccq_thBtn{justify-content:flex-end;width:100%}
+.ccq_numGroupHead{display:grid;grid-template-columns:minmax(62px,auto) minmax(88px,auto);column-gap:12px;align-items:center}
 /* 占比条的第 0 像素必须落在「额度占比」这一列的第 0 像素上，
    所以这里不留左内边距；条与数字之间的呼吸由 column-gap 负责 */
 .ccq_cShare{display:flex;align-items:center;gap:9px;min-width:0}
@@ -762,6 +776,10 @@ window.__ModuleLoader__.load({
   .ccq_tableInner{min-width:640px}
   .ccq_th,.ccq_tr{grid-template-columns:minmax(120px,2fr) repeat(4,minmax(72px,1fr)) minmax(78px,1fr);gap:8px;padding:8px 10px}
   .ccq_cModelNote{display:none}
+  /* 窄屏下数字组按内容宽度收，给模型名腾出空间 */
+  .ccq_tableModel .ccq_th.ccq_thModel,.ccq_tableModel .ccq_tr.ccq_trModel{grid-template-columns:minmax(120px,1fr) auto minmax(140px,1fr);column-gap:10px}
+  .ccq_numGroup,.ccq_numGroupHead{grid-template-columns:minmax(46px,auto) minmax(64px,auto);column-gap:8px}
+  .ccq_cShareBar{min-width:0}
   .ccq_heroValue{font-size:26px}
   .ccq_body{padding:14px 14px 22px}
   /* 行标签（5 小时限制 / 账号 …）在窄屏不再固定 132px，改上下排 */
@@ -1457,18 +1475,22 @@ window.__ModuleLoader__.load({
           dir: sort.dir,
           onClick: function () { toggleSort('name'); },
         }),
-        h(HeaderBtn, {
-          label: t('byModel.requests'),
-          active: sort.key === 'requests',
-          dir: sort.dir,
-          onClick: function () { toggleSort('requests'); },
-        }),
-        h(HeaderBtn, {
-          label: t('byModel.tokens'),
-          active: sort.key === 'tokensTotal',
-          dir: sort.dir,
-          onClick: function () { toggleSort('tokensTotal'); },
-        }),
+        h(
+          'div',
+          { className: 'ccq_numGroupHead' },
+          h(HeaderBtn, {
+            label: t('byModel.requests'),
+            active: sort.key === 'requests',
+            dir: sort.dir,
+            onClick: function () { toggleSort('requests'); },
+          }),
+          h(HeaderBtn, {
+            label: t('byModel.tokens'),
+            active: sort.key === 'tokensTotal',
+            dir: sort.dir,
+            onClick: function () { toggleSort('tokensTotal'); },
+          }),
+        ),
         h(HeaderBtn, {
           label: t('byModel.share'),
           active: sort.key === 'credits',
@@ -1495,8 +1517,12 @@ window.__ModuleLoader__.load({
                   m.provider ? h('span', { className: 'ccq_cModelNote' }, m.provider) : null,
                 ),
               ),
-              h('div', { className: 'ccq_cNum' }, num(m.requests, 0)),
-              h('div', { className: 'ccq_cNum', 'data-strong': '' }, compact(m.tokensTotal)),
+              h(
+                'div',
+                { className: 'ccq_numGroup' },
+                h('div', { className: 'ccq_cNum' }, num(m.requests, 0)),
+                h('div', { className: 'ccq_cNum', 'data-strong': '' }, compact(m.tokensTotal)),
+              ),
               h(
                 'div',
                 { className: 'ccq_cShare' },
