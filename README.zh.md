@@ -41,7 +41,7 @@ https://github.com/Chygyo/dsh-comcode-quota/releases/download/v1.0.0/dsh-comcode
 | --- | --- |
 | 概览 | 顶栏（账号、最近拉取）+ 本期用量三张卡（TOKEN 总数、运行总次数、CLOUD 本月分钟）+ 剩余额度大数字 + 三张窗口卡（剩余/总额、已用比例、重置倒计时、消耗速度、预计用完时间、可承受速度、每日预算） |
 | 模型用量 | 按模型看真实消耗：请求数、TOKEN 数、额度占比（按本月额度消耗算，不是 token 数），可筛选、点表头排序。数据走官网 `/internal/usage/by-model`，需要浏览器里登录过 commandcode.ai |
-| 模型价目表 | 75 个模型的单价表，点表头任意列可排序（默认按单次估算升序，无数据的模型永远排最后）；按你的典型请求画像估算「剩余额度还能跑几次」 |
+| 模型价目表 | 75 个模型的单价表——输入、输出、缓存读取、缓存写入四档。点表头任意列可排序（默认按单次估算升序，无数据的模型永远排最后）。「还能跑」跟着你选的窗口（5 小时 / 每周 / 每月）变，用价目表官方给的每窗口次数折算；官方没给次数的模型按剩余额度 ÷ 单次估算粗推，前面标一个 ≈ |
 | 设置 | 凭据来源、API 地址、服务端抓取间隔、超时、历史留存（含清空采样历史）、告警阈值 |
 | 诊断 | 版本、Node、凭据来源、数据目录、采样数、最近拉取耗时、错误、原始日志 |
 
@@ -62,7 +62,7 @@ GET  /api/dsh-comcode-quota/settings       # 当前设置（手动 Key 只回掩
 POST /api/dsh-comcode-quota/settings       # 改设置（白名单字段 + 范围校验；{reset:true} 恢复默认）
 GET  /api/dsh-comcode-quota/history        # 采样点（?since=<ms>）
 POST /api/dsh-comcode-quota/history-clear  # 清空历史
-GET  /api/dsh-comcode-quota/pricing        # 价目表（?in=&cache=&out= 覆盖请求画像）
+GET  /api/dsh-comcode-quota/pricing        # 价目表（?in=&write=&cache=&out= 覆盖请求画像；?window=fiveHour|weekly|monthly 选择「还能跑」按哪个窗口算）
 GET  /api/dsh-comcode-quota/by-model       # 按模型用量（走浏览器登录态）
 POST /api/dsh-comcode-quota/by-model/refresh
 POST /api/dsh-comcode-quota/by-model/probe

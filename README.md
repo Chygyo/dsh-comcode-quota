@@ -41,7 +41,7 @@ The **Usage by model** tab needs something else: it reads `/internal/usage/by-mo
 | --- | --- |
 | Overview | Top bar (account, last fetch), three this-period cards (total tokens, total requests, CLOUD minutes this month), a large remaining-credit figure, and three window cards (remaining/total, used %, reset countdown, burn rate, projected exhaustion, rate ceiling to last until reset, daily budget) |
 | Usage by model | Real spend per model: requests, tokens and credit share (share is based on credits consumed this month, not token count). Filterable and sortable. Reads the official `/internal/usage/by-model` endpoint, so it needs a signed-in commandcode.ai session in your browser |
-| Pricing | Per-million prices for 75 models. Click any column header to sort (defaults to estimated cost ascending; rows without a value always sort last), plus a "how many more requests" estimate from your request profile |
+| Pricing | Per-million prices for 75 models — input, output, cache read and cache write. Click any column header to sort (defaults to estimated cost ascending; rows without a value always sort last). "Requests left" follows the window you pick (5-hour / weekly / monthly) using the official per-window counts from the pricing page; when the page has no count for a model, a rough estimate is shown with a leading ≈ |
 | Settings | Credential source, API base URL, server fetch interval, timeout, history retention (including clearing samples), thresholds |
 | Diagnostics | Version, Node, credential source, data directory, sample count, last fetch latency, errors, raw log |
 
@@ -62,7 +62,7 @@ GET  /api/dsh-comcode-quota/settings
 POST /api/dsh-comcode-quota/settings   # whitelisted + range-checked; {reset:true} restores defaults
 GET  /api/dsh-comcode-quota/history    # ?since=<ms>
 POST /api/dsh-comcode-quota/history-clear
-GET  /api/dsh-comcode-quota/pricing    # ?in=&cache=&out= overrides the request profile
+GET  /api/dsh-comcode-quota/pricing    # ?in=&write=&cache=&out= overrides the request profile; ?window=fiveHour|weekly|monthly picks the window for "requests left"
 GET  /api/dsh-comcode-quota/by-model   # per-model usage (browser session)
 POST /api/dsh-comcode-quota/by-model/refresh
 POST /api/dsh-comcode-quota/by-model/probe
@@ -73,6 +73,7 @@ GET  /api/dsh-comcode-quota/diagnostics
 ## Differences from the original
 
 - **Dropped**: tray icon, floating widget, system notifications, launch-at-login, global hotkey, theme switcher, PNG export, demo mode
+- **Different**: the price table is reparsed from the live pricing page by header name (not by column index), so a column reorder upstream cannot silently shift the numbers. `scripts/fetch-pricing.mjs` regenerates `data/goat-pricing.json`.
 - **Kept**: Command Code API client, burn-rate and exhaustion projection, history sampling, pricing table and request-capacity estimate
 - **Added**: in-panel polling every 20 s, visible credential source, range validation on every settable field
 
