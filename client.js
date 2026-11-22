@@ -114,7 +114,7 @@ window.__ModuleLoader__.load({
       'pricing.title': '模型价目表',
       'pricing.model': '模型',
       'pricing.input': '输入 $/M',
-      'pricing.cacheRead': '缓存读 $/M',
+      'pricing.cacheRead': '缓存读取 $/M',
       'pricing.output': '输出 $/M',
       'pricing.perRequest': '单次估算',
       'pricing.capacity': '还能跑',
@@ -126,7 +126,7 @@ window.__ModuleLoader__.load({
       'pricing.generatedAt': '价目表生成于 {when}',
       'pricing.freeTag': '免费',
       'pricing.context': '上下文长度',
-      'pricing.officialNote': '「还能跑」按官方给的分窗口次数 × 剩余比例折算。「单次估算」按一次典型请求（新输入 {in} / 缓存读 {cache} / 输出 {out} tokens）的 token 报价算，和额度点不是同一单位，只用来横向比较模型贵贱。',
+      'pricing.officialNote': '「还能跑」按官方给的分窗口次数 × 剩余比例折算。「单次估算」按一次典型请求（新输入 {in} / 缓存读取 {cache} / 输出 {out} tokens）的 token 报价算，和额度点不是同一单位，只用来横向比较模型贵贱。',
       'settings.credentials': '凭据',
       'settings.credentialsMode': '凭据来源',
       'settings.auto': '自动（DSH 凭据库 / 环境变量 / CLI 登录态）',
@@ -683,13 +683,15 @@ window.__ModuleLoader__.load({
 .ccq_segBtn[data-active]{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);font-weight:600}
 .ccq_spacer{flex:1}
 
-.ccq_table{border:1px solid var(--dsw-alias-border-l1);border-radius:13px;overflow:hidden}
-.ccq_tableScroll{overflow-x:auto}
+/* 表格自己是滚动容器：整页不再被表格撑长，滚动条收在表格内部，上下也有了间距。
+   max-height 用 vh 而不是固定像素，窗口拉高时表格跟着变高。 */
+.ccq_table{border:1px solid var(--dsw-alias-border-l1);border-radius:13px;overflow:hidden;max-height:min(62vh,600px);display:flex;flex-direction:column}
+.ccq_tableScroll{overflow:auto;flex:1 1 auto;min-height:0;scrollbar-width:thin}
 /* 六列走同一套 grid 模板：表头和表体共享列宽，数字才会真正对齐。
    之前用 flex + 固定 flex-basis，列宽随内容漂、右对齐也救不回来。 */
 .ccq_tableInner{min-width:720px}
 /* 按模型用量表：模型 / 请求数 / TOKEN / 占比条，列比价目表少，单独一套模板 */
-.ccq_tableModel{max-height:none}
+.ccq_tableModel{max-height:min(62vh,600px)}
 .ccq_tableInnerModel{min-width:640px}
 /* 列宽分配的三条约束：
    1. 模型名最长有 deepseek-v4.1-flash-ultrafast 这种 28 字符，给 170–300px 的区间就够；
@@ -723,14 +725,19 @@ window.__ModuleLoader__.load({
 .ccq_cShareFill{height:100%;border-radius:4px;background:var(--dsw-alias-chart-tools);opacity:.72}
 /* 不用固定宽度：'100.0%' 比 '0.0%' 宽，写死 46px 会挤掉轨道或在极窄窗口溢出 */
 .ccq_cShareText{flex:none;min-width:38px;text-align:right;font-size:11.5px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;white-space:nowrap}
-.ccq_th,.ccq_tr{display:grid;grid-template-columns:minmax(170px,1.7fr) repeat(4,minmax(76px,0.85fr)) minmax(88px,0.9fr);align-items:center;gap:14px}
+/* 价目表列宽：模型名下面可能还有一行 note（「Off-peak shown (17h/day)…」），
+   所以给 210–340px 的区间而不是按 fr 比例分；四个价格列等宽，容量列稍窄。 */
+.ccq_th,.ccq_tr{display:grid;grid-template-columns:minmax(210px,340px) repeat(4,minmax(84px,1fr)) minmax(88px,0.8fr);align-items:center;gap:14px}
 /* 表头与表体必须用同一套左右内边距：列宽由 grid 决定，只要左右 padding 不同，
    内容的左边界就会比表头文字偏移几个像素，看起来像没对齐 */
-.ccq_th{font-size:11px;letter-spacing:.2px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);border-bottom:1px solid var(--dsw-alias-border-l2);padding:8px 16px}
+.ccq_th{position:sticky;top:0;z-index:2;font-size:11px;letter-spacing:.2px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);border-bottom:1px solid var(--dsw-alias-border-l2);padding:8px 16px}
 .ccq_tr{padding:9px 16px;font-size:12.5px;border-top:1px solid var(--dsw-alias-border-l1)}
 .ccq_tr:nth-child(odd){background:var(--dsw-alias-card-fill)}
 .ccq_tr:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.ccq_cModel{display:flex;align-items:center;gap:9px;min-width:0}
+.ccq_cModel{display:flex;flex-direction:column;gap:1px;min-width:0}
+/* 名字与徽标同一行：徽标永远贴着名字，不被 note 的长度影响 */
+.ccq_cModelTop{display:flex;align-items:center;gap:7px;min-width:0}
+/* 模型用量页只有「名字 + provider 副行」，不用 ccq_cModelTop 那层，保持原来的竖向两行 */
 .ccq_cModelText{display:flex;flex-direction:column;gap:1px;min-width:0;flex:0 1 auto}
 .ccq_cModelName{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ccq_cModelNote{font-size:10.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1917,8 +1924,8 @@ window.__ModuleLoader__.load({
     // 实测分布：单价 0.002–15（4 位够）、单次估算 0.000011–0.027（6 位够）。
     var PRICE_COLUMNS = [
       { key: 'input', label: 'pricing.input', kind: 'price', digits: 4 },
-      { key: 'cacheRead', label: 'pricing.cacheRead', kind: 'price', digits: 4 },
       { key: 'output', label: 'pricing.output', kind: 'price', digits: 4 },
+      { key: 'cacheRead', label: 'pricing.cacheRead', kind: 'price', digits: 4 },
       { key: 'perRequest', label: 'pricing.perRequest', kind: 'perRequest', digits: 6 },
     ];
     // 表头点击排序：默认按「单次估算」升序（便宜的在前），再点同一列反向。
@@ -2191,14 +2198,16 @@ window.__ModuleLoader__.load({
                       h(
                         'span',
                         { className: 'ccq_cModel' },
+                        // 徽标必须紧跟模型名：早先把「名字+note」放在一个占满宽度的子列里，
+                        // 带 note 的行会把徽标一路推到单元格右边缘，和不带 note 的行错开一截。
                         h(
                           'span',
-                          { className: 'ccq_cModelText' },
+                          { className: 'ccq_cModelTop' },
                           h('span', { className: 'ccq_cModelName', title: m.name || m.slug || '' }, m.name || m.slug || '—'),
-                          m.note ? h('span', { className: 'ccq_cModelNote', title: m.note }, m.note) : null,
+                          m.free ? h('span', { className: 'ccq_freeTag' }, t('pricing.freeTag')) : null,
+                          m.context ? h('span', { className: 'ccq_ctx', title: t('pricing.context') }, m.context) : null,
                         ),
-                        m.free ? h('span', { className: 'ccq_freeTag' }, t('pricing.freeTag')) : null,
-                        m.context ? h('span', { className: 'ccq_ctx', title: t('pricing.context') }, m.context) : null,
+                        m.note ? h('span', { className: 'ccq_cModelNote', title: m.note }, m.note) : null,
                       ),
                       PRICE_COLUMNS.map(function (col) {
                         var v = m[col.key];
