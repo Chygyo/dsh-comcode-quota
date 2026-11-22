@@ -712,7 +712,10 @@ window.__ModuleLoader__.load({
 .ccq_numGroupHead{display:grid;grid-template-columns:minmax(62px,auto) minmax(88px,auto);column-gap:12px;align-items:center}
 /* 占比条的第 0 像素必须落在「额度占比」这一列的第 0 像素上，
    所以这里不留左内边距；条与数字之间的呼吸由 column-gap 负责 */
-.ccq_cShare{display:flex;align-items:center;gap:9px;min-width:0}
+/* 占比列整体右移：TOKEN 数字是右对齐的，紧挨着进度条会让人以为数字是条的标签。
+   表头和表体加同样的左内边距，两边的左边缘才仍然在同一条线上。 */
+.ccq_cShare{display:flex;align-items:center;gap:9px;min-width:0;padding-left:36px}
+.ccq_cShareHead{min-width:0;padding-left:36px}
 /* 轨道不设硬下限：列宽由 grid 的 minmax 决定，轨道只需吃掉列内剩余空间。
    早先这里写 min-width:300px，加上右侧 46px 的百分比数字就超出列宽，
    在窄一点的窗口里数字直接被面板右边界裁掉（只剩「34.」这种半截值）。 */
@@ -786,6 +789,7 @@ window.__ModuleLoader__.load({
   .ccq_tableModel .ccq_th.ccq_thModel,.ccq_tableModel .ccq_tr.ccq_trModel{grid-template-columns:minmax(120px,1fr) auto minmax(140px,1fr);column-gap:10px}
   .ccq_numGroup,.ccq_numGroupHead{grid-template-columns:minmax(46px,auto) minmax(64px,auto);column-gap:8px}
   .ccq_cShareBar{min-width:0}
+  .ccq_cShare,.ccq_cShareHead{padding-left:16px}
   .ccq_heroValue{font-size:26px}
   .ccq_body{padding:14px 14px 22px}
   /* 行标签（5 小时限制 / 账号 …）在窄屏不再固定 132px，改上下排 */
@@ -1497,12 +1501,18 @@ window.__ModuleLoader__.load({
             onClick: function () { toggleSort('tokensTotal'); },
           }),
         ),
-        h(HeaderBtn, {
-          label: t('byModel.share'),
-          active: sort.key === 'credits',
-          dir: sort.dir,
-          onClick: function () { toggleSort('credits'); },
-        }),
+        // 包一层只是为了和表体的占比条共用一个左内边距：两者必须一起右移，
+        // 否则表头文字和下面的进度条左边缘会错开，看起来像没对齐
+        h(
+          'div',
+          { className: 'ccq_cShareHead' },
+          h(HeaderBtn, {
+            label: t('byModel.share'),
+            active: sort.key === 'credits',
+            dir: sort.dir,
+            onClick: function () { toggleSort('credits'); },
+          }),
+        ),
       );
 
       var body = sorted.length
