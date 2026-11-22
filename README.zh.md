@@ -2,7 +2,7 @@
 
 在 DeepSeek Harness 侧边栏里实时查看 Command Code（GOAT 套餐）的额度消耗：5 小时 / 每周 / 每月三个窗口还剩多少、烧得多快、能不能撑到重置。
 
-这是原桌面应用 [`cc-quota-monitor`](https://github.com/Chygyo/cc-quota-monitor) 的 DSH 载体移植版——原来靠 Electron 托盘窗口和悬浮窗，现在改成侧边栏面板 + 4 个标签页，不再有托盘和独立窗口。
+这是原桌面应用 [`cc-quota-monitor`](https://github.com/Chygyo/cc-quota-monitor) 的 DSH 载体移植版——原来靠 Electron 托盘窗口和悬浮窗，现在改成侧边栏面板 + 5 个标签页，不再有托盘和独立窗口。
 
 ## 安装
 

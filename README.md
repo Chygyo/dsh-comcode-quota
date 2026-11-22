@@ -2,7 +2,7 @@
 
 Live Command Code (GOAT plan) quota monitoring in the DeepSeek Harness sidebar: how much is left in the 5-hour / weekly / monthly windows, how fast it burns, and whether it lasts until reset.
 
-This is a DSH re-host of the desktop app [`cc-quota-monitor`](https://github.com/Chygyo/cc-quota-monitor). The Electron tray window and floating widget are gone; the UI is now a sidebar panel with four tabs.
+This is a DSH re-host of the desktop app [`cc-quota-monitor`](https://github.com/Chygyo/cc-quota-monitor). The Electron tray window and floating widget are gone; the UI is now a sidebar panel with five tabs.
 
 ## Install
 
