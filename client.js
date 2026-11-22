@@ -21,7 +21,6 @@ window.__ModuleLoader__.load({
     /* ------------------------------------------------------------ 词典 */
 
     var ZH = {
-      'byModel.totalModels': '{n} 个模型',
       'byModel.totalRequests': '{n} 次请求',
       'byModel.totalTokens': '{n} tokens',
       'byModel.totalCredits': '消耗 {n} 额度',
@@ -32,7 +31,6 @@ window.__ModuleLoader__.load({
       'byModel.tokens': 'TOKEN 数',
       'byModel.share': '额度占比',
       'byModel.filter': '筛选模型',
-      'byModel.count': '{shown} / {total} 个模型',
       'byModel.retry': '重试',
       'byModel.empty': '暂时没有按模型的用量数据',
       'byModel.noMatch': '没有匹配的模型',
@@ -127,7 +125,6 @@ window.__ModuleLoader__.load({
       'pricing.empty': '没有匹配的模型。',
       'pricing.generatedAt': '价目表生成于 {when}',
       'pricing.freeTag': '免费',
-      'pricing.count': '{shown} / {total} 个模型',
       'pricing.context': '上下文长度',
       'pricing.officialNote': '「还能跑」按官方给的分窗口次数 × 剩余比例折算。「单次估算」按一次典型请求（新输入 {in} / 缓存读 {cache} / 输出 {out} tokens）的 token 报价算，和额度点不是同一单位，只用来横向比较模型贵贱。',
       'settings.credentials': '凭据',
@@ -184,7 +181,6 @@ window.__ModuleLoader__.load({
     };
 
     var EN = {
-      'byModel.totalModels': '{n} models',
       'byModel.totalRequests': '{n} requests',
       'byModel.totalTokens': '{n} tokens',
       'byModel.totalCredits': '{n} credits used',
@@ -195,7 +191,6 @@ window.__ModuleLoader__.load({
       'byModel.tokens': 'Tokens',
       'byModel.share': 'Credit share',
       'byModel.filter': 'Filter models',
-      'byModel.count': '{shown} / {total} models',
       'byModel.retry': 'Retry',
       'byModel.empty': 'No per-model usage yet',
       'byModel.noMatch': 'No matching models',
@@ -290,7 +285,6 @@ window.__ModuleLoader__.load({
       'pricing.empty': 'No matching model.',
       'pricing.generatedAt': 'Pricing generated {when}',
       'pricing.freeTag': 'Free',
-      'pricing.count': '{shown} / {total} models',
       'pricing.context': 'Context window',
       'pricing.officialNote': 'Requests left = official window count × remaining ratio. The per-request figure assumes a typical request of {in} fresh input / {cache} cache-read / {out} output tokens priced by token; it is not in credit units and is only meant for comparing models.',
       'settings.credentials': 'Credentials',
@@ -700,10 +694,6 @@ window.__ModuleLoader__.load({
 /* 占比条要给足长度才有辨析度：29% 和 24% 在 100px 的轨道上几乎看不出差别，
    所以把这一列的权重拉到其它列的 3 倍左右，轨道自然长到 300px 上下 */
 .ccq_thModel,.ccq_trModel{grid-template-columns:minmax(150px,1.5fr) minmax(64px,0.5fr) minmax(80px,0.55fr) minmax(400px,3.6fr);column-gap:26px}
-.ccq_byModelHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ccq_byModelHead .ccq_sectionTitle{margin:0}
-.ccq_byModelStat{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap;min-width:0}
-.ccq_byModelStatItem{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
 /* 占比条的第 0 像素必须落在「额度占比」这一列的第 0 像素上，
    所以这里不留左内边距；条与数字之间的呼吸由 column-gap 负责 */
 .ccq_cShare{display:flex;align-items:center;gap:9px;min-width:0}
@@ -795,6 +785,24 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------ 小组件 */
+
+    /**
+     * 用「·」把若干节点连起来，自动跳过空项。
+     *
+     * 筛选行右侧的元信息是按条件出现的（生成时间可能没有、额度消耗可能为 0），
+     * 手写分隔符很容易出现前导「·」或连着两个「·」，所以统一走这里。
+     * key 是必需的：这些节点会作为数组交给 React，没 key 会在控制台刷警告。
+     */
+    function joinWithSep(nodes) {
+      var out = [];
+      nodes.forEach(function (node, i) {
+        if (node === null || node === undefined || node === false || node === '') return;
+        if (out.length) out.push(h('span', { key: 'sep-' + i, className: 'ccq_filterSep' }, '·'));
+        out.push(h(React.Fragment, { key: 'item-' + i }, node));
+      });
+      return out;
+    }
+
 
     function tone(usedPct, thresholds) {
       var warn = (thresholds && thresholds.warn) || 70;
@@ -1404,6 +1412,7 @@ window.__ModuleLoader__.load({
     // 加载 / 错误 / 空态由 ByModelTab 管，这样以后别处复用表格也不用带一整套状态。
     var MODEL_SORT_KEYS = ['name', 'requests', 'tokensTotal', 'credits'];
 
+    /** @param props.rows 全部行；@param props.meta 显示在筛选行右侧的统计（请求数/tokens/额度/更新时间） */
     function ByModelTable(props) {
       var rows = props.rows || [];
       var sortState = useState({ key: 'credits', dir: -1 });
@@ -1512,7 +1521,8 @@ window.__ModuleLoader__.load({
             'aria-label': t('byModel.filter'),
             onChange: function (e) { filterState[1](e.target.value); },
           }),
-          h('span', { className: 'ccq_filterMeta' }, t('byModel.count', { shown: sorted.length, total: rows.length })),
+          // 右侧元信息由父级（ByModelTab）算好传进来，跟筛选框同一行
+          h('span', { className: 'ccq_filterMeta' }, props.meta || null),
         ),
         h(
           'div',
@@ -1643,32 +1653,19 @@ window.__ModuleLoader__.load({
       var rows = (data && data.models) || [];
       var showError = error || (err && !rows.length);
 
-      // 顶部工具栏：左边口径说明，右边刷新
-      var toolbar = h(
-        'div',
-        { className: 'ccq_byModelHead' },
-        h(
-          'div',
-          { className: 'ccq_byModelStat' },
-          data
-            ? h(
-                React.Fragment,
-                null,
-                h('span', { className: 'ccq_byModelStatItem' }, t('byModel.totalModels', { n: num(data.totalModels, 0) })),
-                h('span', { className: 'ccq_byModelStatItem' }, t('byModel.totalRequests', { n: num(data.totalRequests, 0) })),
-                h('span', { className: 'ccq_byModelStatItem' }, t('byModel.totalTokens', { n: compact(data.totalTokens) })),
-                data.totalCredits > 0
-                  ? h('span', { className: 'ccq_byModelStatItem' }, t('byModel.totalCredits', { n: num(data.totalCredits, 2) }))
-                  : null,
-              )
-            : null,
-        ),
-        h('span', { className: 'ccq_spacer' }),
-        // 这条通道（浏览器 cookie）的抓取时刻和额度快照不同，所以时间显示在本页自己这里，
-        // 不放到所有 tab 共用的副标题上。
-        meta.at ? h('span', { className: 'ccq_hint' }, t('byModel.updated', { age: duration(Date.now() - meta.at) })) : null,
-        // 这页不放自己的刷新按钮：顶部那个「刷新」已经是全量刷新（额度 + 模型用量）。
-      );
+      // 筛选行右侧的元信息：请求数 / tokens / 额度消耗，末尾接本页自己的抓取时刻。
+      // 不再显示「多少个模型」—— 模型总数对用户没有决策价值，反而把这一行挤满。
+      // 抓取时刻放在本页，是因为这条通道（浏览器 cookie）和额度快照的抓取时刻不同，
+      // 放到所有 tab 共用的副标题上会随切换来回跳。
+      var statItems = data
+        ? joinWithSep([
+            t('byModel.totalRequests', { n: num(data.totalRequests, 0) }),
+            t('byModel.totalTokens', { n: compact(data.totalTokens) }),
+            data.totalCredits > 0 ? t('byModel.totalCredits', { n: num(data.totalCredits, 2) }) : null,
+            // 这页不放自己的刷新按钮：顶部那个「刷新」已经是全量刷新（额度 + 模型用量）。
+            meta.at ? h('span', { className: 'ccq_hint' }, t('byModel.updated', { age: duration(Date.now() - meta.at) })) : null,
+          ])
+        : null;
 
       var content;
       if (showError && !rows.length) {
@@ -1691,15 +1688,10 @@ window.__ModuleLoader__.load({
       } else if (!rows.length) {
         content = h(Empty, { title: t('byModel.empty'), hint: t('byModel.hint') });
       } else {
-        content = h(ByModelTable, { rows: rows });
+        content = h(ByModelTable, { rows: rows, meta: statItems });
       }
 
-      return h(
-        React.Fragment,
-        null,
-        toolbar,
-        content,
-      );
+      return content;
     }
 
     /* ------------------------------------------------------------ 概览 */
@@ -2080,21 +2072,14 @@ window.__ModuleLoader__.load({
           h(
             'span',
             { className: 'ccq_filterMeta' },
+            // 不再显示「多少个模型」：模型总数不是决策信息，留着只会把这一行挤满。
+            // 顺序保持「生成时间 → 估算窗口」的阅读节奏，分隔符交给 joinWithSep 统一处理。
             loading
               ? t('common.loading')
-              : t('pricing.count', { shown: num(models.length, 0), total: num((data && data.models && data.models.length) || 0, 0) }),
-            data && data.generatedAt
-              ? h(
-                  React.Fragment,
-                  null,
-                  h('span', { className: 'ccq_filterSep' }, '·'),
-                  h('span', null, t('pricing.generatedAt', { when: hourLabel(Date.parse(data.generatedAt)) })),
-                )
-              : null,
-            // 「还能跑」按哪个窗口折算：原来放在独立的参数卡里，现在并进这一行，
-            // 少一个卡片也少一层视觉噪音。
-            h('span', { className: 'ccq_filterSep' }, '·'),
-            h('span', null, t('pricing.estimateFor')),
+              : joinWithSep([
+                  data && data.generatedAt ? t('pricing.generatedAt', { when: hourLabel(Date.parse(data.generatedAt)) }) : null,
+                  h('span', null, t('pricing.estimateFor')),
+                ]),
             h(Segmented, {
               value: windowKey,
               onChange: setWindow,
