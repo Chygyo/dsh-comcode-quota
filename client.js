@@ -33,7 +33,6 @@ window.__ModuleLoader__.load({
       'byModel.share': '额度占比',
       'byModel.filter': '筛选模型',
       'byModel.count': '{shown} / {total} 个模型',
-      'byModel.refresh': '刷新',
       'byModel.retry': '重试',
       'byModel.empty': '暂时没有按模型的用量数据',
       'byModel.noMatch': '没有匹配的模型',
@@ -202,7 +201,6 @@ window.__ModuleLoader__.load({
       'byModel.share': 'Credit share',
       'byModel.filter': 'Filter models',
       'byModel.count': '{shown} / {total} models',
-      'byModel.refresh': 'Refresh',
       'byModel.retry': 'Retry',
       'byModel.empty': 'No per-model usage yet',
       'byModel.noMatch': 'No matching models',
@@ -1653,11 +1651,8 @@ window.__ModuleLoader__.load({
         ),
         h('span', { className: 'ccq_spacer' }),
         meta.at ? h('span', { className: 'ccq_hint' }, t('byModel.updated', { age: duration(Date.now() - meta.at) })) : null,
-        h(
-          'button',
-          { type: 'button', className: 'ccq_btn ccq_btnGhost', onClick: function () { load(true); }, disabled: busy },
-          busy ? t('common.loading') : t('byModel.refresh'),
-        ),
+        // 这里不再放自己的刷新按钮：顶部那个「刷新」已经是全量刷新（额度 + 模型用量），
+        // 同一屏出现两个刷新按钮只会让人不知道该点哪个。
       );
 
       var content;

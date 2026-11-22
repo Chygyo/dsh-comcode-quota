@@ -118,6 +118,12 @@ class QuotaService {
       this.store.log('info', `refresh ok (${reason}) 5h=${snap.windows.fiveHour.remaining} wk=${snap.windows.weekly.remaining} mo=${snap.windows.monthly.remaining}`);
       if (snap.errors?.length) this.store.log('warn', `partial errors: ${JSON.stringify(snap.errors)}`);
       this.lastError = null;
+      // 模型用量搭同一趟车更新：面板读的是 /state 里的 byModel 字段，
+      // 这里不跟着刷的话，那一页只有重启后才变一次。
+      // 自动刷新用 fire-and-forget（由 refreshByModel 自己的 60 秒节流控制，
+      // 不每 60 秒读一次钥匙串）；手动刷新要 await，否则接口返回的还是旧数字。
+      if (reason === 'manual') await this.refreshByModel('manual');
+      else this.refreshByModel('auto').catch(() => {});
       return { ok: true };
     } catch (err) {
       this.lastError = { message: err.friendly ?? err.message, raw: err.message, at: Date.now(), status: err.status ?? 0 };
@@ -134,13 +140,13 @@ class QuotaService {
    * 拉按模型用量。这条通道独立于主快照：
    *   - 依赖浏览器 cookie，可能失败（没登录、cookie 过期、钥匙串拒绝），
    *     失败时只记错误、不影响额度那一半继续工作；
-   *   - 不需要每 60 秒都拉（数据本身按账单周期累计，变化很慢），
-   *     所以单独限流到 10 分钟一次，避免频繁访问钥匙串。
+   *   - 自动刷新时按 60 秒节流（跟主快照同一个节拍），钥匙串本身另有 10 分钟
+   *     缓存，所以不会每 60 秒就去解锁一次钥匙串。
    */
   async refreshByModel(reason = 'auto') {
     if (this.byModelRefreshing) return { ok: false, error: { message: '正在刷新中' } };
     const age = Date.now() - this.byModelAt;
-    if (reason === 'auto' && this.byModel && age < 10 * 60 * 1000) return { ok: true, skipped: true };
+    if (reason === 'auto' && this.byModel && age < 60 * 1000) return { ok: true, skipped: true };
     this.byModelRefreshing = true;
     try {
       const res = await fetchByModel({ timeout: Math.max(5000, Number(this.settings().requestTimeoutMs) || 15000) });
