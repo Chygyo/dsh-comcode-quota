@@ -122,10 +122,6 @@ window.__ModuleLoader__.load({
       'pricing.perRequest': '单次估算',
       'pricing.capacity': '还能跑',
       'pricing.free': '免费',
-      'pricing.profile': '典型请求画像',
-      'pricing.freshInput': '新输入',
-      'pricing.cacheReadTokens': '缓存读取',
-      'pricing.outputTokens': '输出',
       'pricing.estimateFor': '估算窗口',
       'pricing.noSnapshot': '先拉一次快照才能估算剩余次数。',
       'pricing.filter': '筛选模型',
@@ -134,7 +130,7 @@ window.__ModuleLoader__.load({
       'pricing.freeTag': '免费',
       'pricing.count': '{shown} / {total} 个模型',
       'pricing.context': '上下文长度',
-      'pricing.officialNote': '「还能跑」按官方给的分窗口次数 × 剩余比例折算；「单次估算」只按 token 报价算，和额度点不是同一单位，仅供参考。',
+      'pricing.officialNote': '「还能跑」按官方给的分窗口次数 × 剩余比例折算。「单次估算」按一次典型请求（新输入 {in} / 缓存读 {cache} / 输出 {out} tokens）的 token 报价算，和额度点不是同一单位，只用来横向比较模型贵贱。',
       'settings.credentials': '凭据',
       'settings.credentialsMode': '凭据来源',
       'settings.auto': '自动（DSH 凭据库 / 环境变量 / CLI 登录态）',
@@ -143,7 +139,7 @@ window.__ModuleLoader__.load({
       'settings.manualKeyPlaceholder': '粘贴你的 Command Code API Key',
       'settings.manualKeySaved': '已保存：{masked}',
       'settings.apiBaseUrl': 'API 地址',
-      'settings.refresh': '刷新',
+      'settings.refresh': '数据刷新',
       'settings.autoRefresh': '自动刷新',
       'settings.refreshInterval': '服务端抓取间隔（秒）',
       'settings.refreshIntervalHint': '控制宿主多久向上游拉一次数据（15–3600 秒）；面板自己读宿主缓存，最快 5 秒、最慢 30 秒刷新一次。',
@@ -290,10 +286,6 @@ window.__ModuleLoader__.load({
       'pricing.perRequest': 'Est. per request',
       'pricing.capacity': 'Requests left',
       'pricing.free': 'Free',
-      'pricing.profile': 'Typical request',
-      'pricing.freshInput': 'Fresh input',
-      'pricing.cacheReadTokens': 'Cache read',
-      'pricing.outputTokens': 'Output',
       'pricing.estimateFor': 'Estimate for',
       'pricing.noSnapshot': 'Fetch a snapshot first to estimate remaining requests.',
       'pricing.filter': 'Filter models',
@@ -302,7 +294,7 @@ window.__ModuleLoader__.load({
       'pricing.freeTag': 'Free',
       'pricing.count': '{shown} / {total} models',
       'pricing.context': 'Context window',
-      'pricing.officialNote': 'Requests left = official {window} count × remaining ratio. The per-request figure is a token-price estimate; it is not in credit units.',
+      'pricing.officialNote': 'Requests left = official window count × remaining ratio. The per-request figure assumes a typical request of {in} fresh input / {cache} cache-read / {out} output tokens priced by token; it is not in credit units and is only meant for comparing models.',
       'settings.credentials': 'Credentials',
       'settings.credentialsMode': 'Credential source',
       'settings.auto': 'Automatic (DSH credentials / env / CLI login)',
@@ -311,7 +303,7 @@ window.__ModuleLoader__.load({
       'settings.manualKeyPlaceholder': 'Paste your Command Code API key',
       'settings.manualKeySaved': 'Saved: {masked}',
       'settings.apiBaseUrl': 'API base URL',
-      'settings.refresh': 'Refresh',
+      'settings.refresh': 'Data refresh',
       'settings.autoRefresh': 'Auto refresh',
       'settings.refreshInterval': 'Server fetch interval (seconds)',
       'settings.refreshIntervalHint': 'How often the host pulls from upstream (15–3600s). The panel reads the host cache and refreshes every 5–30s on its own.',
@@ -685,12 +677,6 @@ window.__ModuleLoader__.load({
 .ccq_statNote{font-size:11px;color:var(--dsw-alias-label-secondary);line-height:1.5;margin:0}
 
 .ccq_toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.ccq_priceParams{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 20px;padding:13px 15px;border:1px solid var(--dsw-alias-border-l1);border-radius:13px;background:var(--dsw-alias-card-fill)}
-.ccq_paramGroup{display:flex;flex-direction:column;gap:7px;min-width:0}
-.ccq_paramGroupEnd{align-items:flex-start}
-.ccq_paramTitle{font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-secondary)}
-.ccq_paramFields{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
-.ccq_fieldSm{flex:0 0 118px}
 .ccq_filterBar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px}
 .ccq_filterInput{max-width:280px;flex:1 1 200px}
 .ccq_filterMeta{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
@@ -1887,6 +1873,7 @@ window.__ModuleLoader__.load({
     // 表头点击排序：默认按「单次估算」升序（便宜的在前），再点同一列反向。
     var SORT_KEYS = ['name', 'input', 'cacheRead', 'output', 'perRequest', 'capacity'];
 
+
     // 可排序表头：箭头只在当前排序列出现，避免满屏 ▲▼
     function HeaderBtn(props) {
       var active = props.active;
@@ -1908,19 +1895,8 @@ window.__ModuleLoader__.load({
 
     function PricingTab(props) {
       var state = props.state;
-      var settings = (state && state.settings) || {};
-      var baseProfile = settings.modelProfile || {};
-      var inState = useState(baseProfile.freshInputTokens !== undefined ? baseProfile.freshInputTokens : 800);
-      var cacheState = useState(baseProfile.cacheReadTokens !== undefined ? baseProfile.cacheReadTokens : 50000);
-      var outState = useState(baseProfile.outputTokens !== undefined ? baseProfile.outputTokens : 175);
-      var profInputs = {
-        setIn: inState[1],
-        setCache: cacheState[1],
-        setOut: outState[1],
-        inValue: inState[0],
-        cacheValue: cacheState[0],
-        outValue: outState[0],
-      };
+      // 画像不再让用户调：它只影响「单次估算」这一列（token 报价，和额度点差约 100 倍），
+      // 抖它改不了任何决策。后端直接用设置里存的 modelProfile。
       var windowState = useState('monthly');
       var windowKey = windowState[0];
       var setWindow = windowState[1];
@@ -1948,28 +1924,22 @@ window.__ModuleLoader__.load({
         });
       };
 
-      var load = useCallback(
-        function () {
-          setLoading(true);
-          api
-            .pricing({
-              freshInputTokens: Number(profInputs.inValue) || 0,
-              cacheReadTokens: Number(profInputs.cacheValue) || 0,
-              outputTokens: Number(profInputs.outValue) || 0,
-            })
-            .then(function (res) {
-              setData(res);
-              setError(null);
-            })
-            .catch(function (err) {
-              setError(err.message || String(err));
-            })
-            .then(function () {
-              setLoading(false);
-            });
-        },
-        [profInputs.inValue, profInputs.cacheValue, profInputs.outValue],
-      );
+      // 画像固定，所以不需要把参数带给接口：后端会用设置里的 modelProfile。
+      var load = useCallback(function () {
+        setLoading(true);
+        api
+          .pricing()
+          .then(function (res) {
+            setData(res);
+            setError(null);
+          })
+          .catch(function (err) {
+            setError(err.message || String(err));
+          })
+          .then(function () {
+            setLoading(false);
+          });
+      }, []);
 
       useEffect(
         function () {
@@ -2074,69 +2044,9 @@ window.__ModuleLoader__.load({
       return h(
         React.Fragment,
         null,
-        // 参数区：左边三格画像、右边窗口选择，各自成一列对齐（原来是 flex 竖排标签混在
-        // 横排输入里，标签离自己的输入框很远，看着像错位）。
-        h(
-          'div',
-          { className: 'ccq_priceParams' },
-          h(
-            'div',
-            { className: 'ccq_paramGroup' },
-            h('span', { className: 'ccq_paramTitle' }, t('pricing.profile')),
-            h(
-              'div',
-              { className: 'ccq_paramFields' },
-              h('label', { className: 'ccq_field ccq_fieldSm' },
-                h('span', { className: 'ccq_label' }, t('pricing.freshInput')),
-                h('input', {
-                  className: 'ccq_input',
-                  type: 'number',
-                  min: 0,
-                  value: profInputs.inValue,
-                  onChange: function (e) {
-                    profInputs.setIn(e.target.value);
-                  },
-                }),
-              ),
-              h('label', { className: 'ccq_field ccq_fieldSm' },
-                h('span', { className: 'ccq_label' }, t('pricing.cacheReadTokens')),
-                h('input', {
-                  className: 'ccq_input',
-                  type: 'number',
-                  min: 0,
-                  value: profInputs.cacheValue,
-                  onChange: function (e) {
-                    profInputs.setCache(e.target.value);
-                  },
-                }),
-              ),
-              h('label', { className: 'ccq_field ccq_fieldSm' },
-                h('span', { className: 'ccq_label' }, t('pricing.outputTokens')),
-                h('input', {
-                  className: 'ccq_input',
-                  type: 'number',
-                  min: 0,
-                  value: profInputs.outValue,
-                  onChange: function (e) {
-                    profInputs.setOut(e.target.value);
-                  },
-                }),
-              ),
-            ),
-          ),
-          h(
-            'div',
-            { className: 'ccq_paramGroup ccq_paramGroupEnd' },
-            h('span', { className: 'ccq_paramTitle' }, t('pricing.estimateFor')),
-            h(Segmented, {
-              value: windowKey,
-              onChange: setWindow,
-              options: WINDOW_FIELDS.map(function (w) {
-                return { value: w.key, label: t(w.label) };
-              }),
-            }),
-          ),
-        ),
+        // 原来的「典型请求画像」三格与「估算窗口」不再作为输入项：
+        // 画像只影响「单次估算」这一列（token 报价，和额度点差约 100 倍），
+        // 调它改不了任何决策，属于自娱自乐。估算窗口保留在筛选行右侧。
         h(
           'div',
           { className: 'ccq_filterBar' },
@@ -2157,11 +2067,24 @@ window.__ModuleLoader__.load({
               ? t('common.loading')
               : t('pricing.count', { shown: num(models.length, 0), total: num((data && data.models && data.models.length) || 0, 0) }),
             data && data.generatedAt
-              ? h('span', { className: 'ccq_filterSep' }, '·')
+              ? h(
+                  React.Fragment,
+                  null,
+                  h('span', { className: 'ccq_filterSep' }, '·'),
+                  h('span', null, t('pricing.generatedAt', { when: hourLabel(Date.parse(data.generatedAt)) })),
+                )
               : null,
-            data && data.generatedAt
-              ? h('span', null, t('pricing.generatedAt', { when: hourLabel(Date.parse(data.generatedAt)) }))
-              : null,
+            // 「还能跑」按哪个窗口折算：原来放在独立的参数卡里，现在并进这一行，
+            // 少一个卡片也少一层视觉噪音。
+            h('span', { className: 'ccq_filterSep' }, '·'),
+            h('span', null, t('pricing.estimateFor')),
+            h(Segmented, {
+              value: windowKey,
+              onChange: setWindow,
+              options: WINDOW_FIELDS.map(function (w) {
+                return { value: w.key, label: t(w.label) };
+              }),
+            }),
           ),
         ),
 
@@ -2266,10 +2189,15 @@ window.__ModuleLoader__.load({
             ),
           ),
         ),
+        // 画像数字取自后端返回的 profile，不在前端再写一份，免得两边漂移
         h(
           'div',
-          { className: 'ccq_hint', style: { paddingTop: '8px' } },
-          t('pricing.officialNote'),
+          { className: 'ccq_hint ccq_statNote' },
+          t('pricing.officialNote', {
+            in: num((data && data.profile && data.profile.freshInputTokens) || 0, 0),
+            cache: num((data && data.profile && data.profile.cacheReadTokens) || 0, 0),
+            out: num((data && data.profile && data.profile.outputTokens) || 0, 0),
+          }),
         ),
       );
     }
@@ -2311,12 +2239,6 @@ window.__ModuleLoader__.load({
         var next = JSON.parse(JSON.stringify(draft));
         next.thresholds = next.thresholds || {};
         next.thresholds[key] = value;
-        setDraft(next);
-      };
-      var patchProfile = function (key, value) {
-        var next = JSON.parse(JSON.stringify(draft));
-        next.modelProfile = next.modelProfile || {};
-        next.modelProfile[key] = value;
         setDraft(next);
       };
 
