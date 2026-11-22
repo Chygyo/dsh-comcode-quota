@@ -37,7 +37,6 @@ window.__ModuleLoader__.load({
       'byModel.empty': '暂时没有按模型的用量数据',
       'byModel.noMatch': '没有匹配的模型',
       'byModel.hint': '这条通道要用浏览器里 commandcode.ai 的登录态才能取到。',
-      'byModel.note': '占比按本月额度消耗算（不是 token 数）——不同模型单价差上百倍，同样的 token 花掉的钱完全不同。数据来自官网 /internal/usage/by-model（读 {browser} 的登录态）。',
       'entry.label': '额度',
       'panel.title': 'Command Code 额度',
       'panel.refresh': '刷新',
@@ -201,7 +200,6 @@ window.__ModuleLoader__.load({
       'byModel.empty': 'No per-model usage yet',
       'byModel.noMatch': 'No matching models',
       'byModel.hint': 'This channel needs a signed-in commandcode.ai session in your browser.',
-      'byModel.note': 'Share is based on credits consumed this month, not token count — per-model prices differ by orders of magnitude. Data from Command Code\'s /internal/usage/by-model endpoint (reads the {browser} session).',
       'entry.label': 'Quota',
       'panel.title': 'Command Code quota',
       'panel.refresh': 'Refresh',
@@ -1701,9 +1699,6 @@ window.__ModuleLoader__.load({
         null,
         toolbar,
         content,
-        rows.length
-          ? h('p', { className: 'ccq_statNote' }, t('byModel.note', { browser: session.browser || '—' }))
-          : null,
       );
     }
 
