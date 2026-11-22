@@ -115,9 +115,11 @@ window.__ModuleLoader__.load({
       'pricing.model': '模型',
       'pricing.input': '输入 $/M',
       'pricing.cacheRead': '缓存读取 $/M',
+      'pricing.cacheWrite': '缓存写入 $/M',
       'pricing.output': '输出 $/M',
       'pricing.perRequest': '单次估算',
       'pricing.capacity': '还能跑',
+      'pricing.capacityEstimated': '官方没给该模型的请求次数，这里是按剩余额度 ÷ 单次估算粗推出来的值。',
       'pricing.free': '免费',
       'pricing.estimateFor': '估算窗口',
       'pricing.noSnapshot': '先拉一次快照才能估算剩余次数。',
@@ -126,7 +128,7 @@ window.__ModuleLoader__.load({
       'pricing.generatedAt': '价目表生成于 {when}',
       'pricing.freeTag': '免费',
       'pricing.context': '上下文长度',
-      'pricing.officialNote': '「还能跑」按官方给的分窗口次数 × 剩余比例折算。「单次估算」按一次典型请求（新输入 {in} / 缓存读取 {cache} / 输出 {out} tokens）的 token 报价算，和额度点不是同一单位，只用来横向比较模型贵贱。',
+      'pricing.officialNote': '「还能跑」按官方给的分窗口次数 × 该窗口剩余比例折算，前面带 ≈ 的表示官方没给次数、按「剩余额度 ÷ 单次估算」粗推。「单次估算」按一次典型请求（输入 {in} / 缓存读取 {cache} / 缓存写入 {write} / 输出 {out} tokens）× 上表单价算，和额度点不是同一单位，只用来横向比较模型贵贱。',
       'settings.credentials': '凭据',
       'settings.credentialsMode': '凭据来源',
       'settings.auto': '自动（DSH 凭据库 / 环境变量 / CLI 登录态）',
@@ -275,9 +277,11 @@ window.__ModuleLoader__.load({
       'pricing.model': 'Model',
       'pricing.input': 'Input $/M',
       'pricing.cacheRead': 'Cache read $/M',
+      'pricing.cacheWrite': 'Cache write $/M',
       'pricing.output': 'Output $/M',
       'pricing.perRequest': 'Est. per request',
       'pricing.capacity': 'Requests left',
+      'pricing.capacityEstimated': 'The vendor publishes no request count for this model; this is a rough estimate from remaining credit ÷ per-request cost.',
       'pricing.free': 'Free',
       'pricing.estimateFor': 'Estimate for',
       'pricing.noSnapshot': 'Fetch a snapshot first to estimate remaining requests.',
@@ -286,7 +290,7 @@ window.__ModuleLoader__.load({
       'pricing.generatedAt': 'Pricing generated {when}',
       'pricing.freeTag': 'Free',
       'pricing.context': 'Context window',
-      'pricing.officialNote': 'Requests left = official window count × remaining ratio. The per-request figure assumes a typical request of {in} fresh input / {cache} cache-read / {out} output tokens priced by token; it is not in credit units and is only meant for comparing models.',
+      'pricing.officialNote': 'Requests left = official window count × remaining ratio; a leading ≈ means the vendor publishes no count and this is a rough estimate from remaining credit ÷ per-request cost. The per-request figure prices a typical request of {in} input / {cache} cache-read / {write} cache-write / {out} output tokens; it is not in credit units and only serves to compare models.',
       'settings.credentials': 'Credentials',
       'settings.credentialsMode': 'Credential source',
       'settings.auto': 'Automatic (DSH credentials / env / CLI login)',
@@ -727,7 +731,7 @@ window.__ModuleLoader__.load({
 .ccq_cShareText{flex:none;min-width:38px;text-align:right;font-size:11.5px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;white-space:nowrap}
 /* 价目表列宽：模型名下面可能还有一行 note（「Off-peak shown (17h/day)…」），
    所以给 210–340px 的区间而不是按 fr 比例分；四个价格列等宽，容量列稍窄。 */
-.ccq_th,.ccq_tr{display:grid;grid-template-columns:minmax(210px,340px) repeat(4,minmax(84px,1fr)) minmax(88px,0.8fr);align-items:center;gap:14px}
+.ccq_th,.ccq_tr{display:grid;grid-template-columns:minmax(210px,340px) repeat(5,minmax(78px,1fr)) minmax(88px,0.8fr);align-items:center;gap:12px}
 /* 表头与表体必须用同一套左右内边距：列宽由 grid 决定，只要左右 padding 不同，
    内容的左边界就会比表头文字偏移几个像素，看起来像没对齐 */
 .ccq_th{position:sticky;top:0;z-index:2;font-size:11px;letter-spacing:.2px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);border-bottom:1px solid var(--dsw-alias-border-l2);padding:8px 16px}
@@ -790,7 +794,7 @@ window.__ModuleLoader__.load({
 @media (max-width:520px){
   /* 窄面板（例如 390px）下数字列各固定 76px 会横向溢出，压缩列宽并允许模型名换行 */
   .ccq_tableInner{min-width:640px}
-  .ccq_th,.ccq_tr{grid-template-columns:minmax(120px,2fr) repeat(4,minmax(72px,1fr)) minmax(78px,1fr);gap:8px;padding:8px 10px}
+  .ccq_th,.ccq_tr{grid-template-columns:minmax(120px,2fr) repeat(5,minmax(66px,1fr)) minmax(78px,1fr);gap:8px;padding:8px 10px}
   .ccq_cModelNote{display:none}
   /* 窄屏下数字组按内容宽度收，给模型名腾出空间 */
   .ccq_tableModel .ccq_th.ccq_thModel,.ccq_tableModel .ccq_tr.ccq_trModel{grid-template-columns:minmax(120px,1fr) auto minmax(140px,1fr);column-gap:10px}
@@ -1926,10 +1930,11 @@ window.__ModuleLoader__.load({
       { key: 'input', label: 'pricing.input', kind: 'price', digits: 4 },
       { key: 'output', label: 'pricing.output', kind: 'price', digits: 4 },
       { key: 'cacheRead', label: 'pricing.cacheRead', kind: 'price', digits: 4 },
+      { key: 'cacheWrite', label: 'pricing.cacheWrite', kind: 'price', digits: 4 },
       { key: 'perRequest', label: 'pricing.perRequest', kind: 'perRequest', digits: 6 },
     ];
     // 表头点击排序：默认按「单次估算」升序（便宜的在前），再点同一列反向。
-    var SORT_KEYS = ['name', 'input', 'cacheRead', 'output', 'perRequest', 'capacity'];
+    var SORT_KEYS = ['name', 'input', 'cacheRead', 'cacheWrite', 'output', 'perRequest', 'capacity'];
 
 
     // 可排序表头：箭头只在当前排序列出现，避免满屏 ▲▼
@@ -2010,28 +2015,33 @@ window.__ModuleLoader__.load({
 
       var ratioForWindow = data && data.windowRatio ? data.windowRatio[windowKey] : null;
 
+      // 「还能跑」必须跟着上面选的窗口变。接口一次就把三个窗口的官方次数
+      // （m.official）和三个窗口的剩余比例（data.windowRatio）都给了，
+      // 所以这里在本地按当前窗口现算，切窗口立刻出数、不用再请求一次。
+      //   official  = 官方给的该窗口次数 × 该窗口剩余比例（权威口径）
+      //   estimated = 没有官方次数，只能用「剩余额度 ÷ 单次估算」粗推（UI 上标 ≈）
+      //   none      = 连单次估算都算不出来，显示 —
       var capacityOf = function (m) {
-        // 「额度点」和「美元」不是同一个单位：官方 Sonnet 每月 1190 次、剩 70 点时
-        // 每次约花 0.0588 点，而按 token 报价算出来只有 $0.0005 —— 两者差上百倍。
-        // 所以剩余次数只能用官方给的分窗口次数 × 剩余比例；没官方数据的就老实显示「—」。
         if (m.free) return Infinity;
-        // 不按 token 计费的模型（见上面的 tokenPriced 判断）按官方次数折算也没有意义，
-        // 因为官方次数是按满额度给的，和 token 价不是一回事 —— 直接不给数字。
-        if (!(Number(m.input) > 0 || Number(m.output) > 0) && !m.requestsMonthly && !m.requests5h) return null;
-        if (!(Number(m.input) > 0 || Number(m.output) > 0)) return null;
         var official = m.official || null;
-        var officialCount =
-          official === null
-            ? null
-            : windowKey === 'fiveHour'
-              ? official.fiveHour
-              : windowKey === 'weekly'
-                ? official.weekly
-                : official.monthly;
-        if (officialCount != null && ratioForWindow != null && isFinite(ratioForWindow)) {
-          return Math.floor(officialCount * ratioForWindow);
+        if (official && official[windowKey] != null && ratioForWindow != null) {
+          var perWindow = Number(official[windowKey]);
+          var ratio = Number(ratioForWindow);
+          if (isFinite(perWindow) && isFinite(ratio)) return Math.floor(perWindow * ratio);
+        }
+        // 粗推值是后端按月度剩余算的，切到 5 小时/每周就不成立了，
+        // 所以只在当前窗口正好等于后端算的那个窗口时才敢用。
+        if (m.remainingRequestsBasis === 'estimated' && data && data.windowKey === windowKey) {
+          var n = Number(m.remainingRequests);
+          return isFinite(n) ? n : null;
         }
         return null;
+      };
+      var capacityBasis = function (m) {
+        if (m && m.official && m.official[windowKey] != null && ratioForWindow != null) return 'official';
+        return m && m.remainingRequestsBasis === 'estimated' && data && data.windowKey === windowKey
+          ? 'estimated'
+          : 'official';
       };
 
       var models = useMemo(
@@ -2234,8 +2244,12 @@ window.__ModuleLoader__.load({
                       }),
                       h(
                         'span',
-                        { className: 'ccq_cNum', 'data-strong': '' },
-                        cap === null ? '—' : cap === Infinity ? '∞' : num(cap, 0),
+                        {
+                          className: 'ccq_cNum',
+                          'data-strong': '',
+                          title: capacityBasis(m) === 'estimated' ? t('pricing.capacityEstimated') : undefined,
+                        },
+                        cap === null ? '—' : cap === Infinity ? '∞' : (capacityBasis(m) === 'estimated' ? '≈ ' : '') + num(cap, 0),
                       ),
                     );
                   }),
@@ -2249,6 +2263,7 @@ window.__ModuleLoader__.load({
           t('pricing.officialNote', {
             in: num((data && data.profile && data.profile.freshInputTokens) || 0, 0),
             cache: num((data && data.profile && data.profile.cacheReadTokens) || 0, 0),
+            write: num((data && data.profile && data.profile.cacheWriteTokens) || 0, 0),
             out: num((data && data.profile && data.profile.outputTokens) || 0, 0),
           }),
         ),

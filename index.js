@@ -17,7 +17,7 @@ import { CommandCodeClient, ApiError, DEFAULT_BASE } from './lib/api.js';
 import { resolveCredentials, diagnoseCredentials, readDshKey, watchCliAuth, maskKey } from './lib/credentials.js';
 import { Store, DSH_HOME } from './lib/store.js';
 import { computeDerived, dailySeries, pushSample, sandboxSeries } from './lib/derive.js';
-import { load as loadPricing, decorate as decoratePricing, requestCost } from './lib/pricing.js';
+import { capacity as capacityOf, load as loadPricing, decorate as decoratePricing, requestCost } from './lib/pricing.js';
 import { isLoopbackRequest, writeJson, readBody } from './lib/guard.js';
 import { fetchByModel, fetchDailyUsage, probeSession } from './lib/usagemodel.js';
 import { sessionInfo } from './lib/websession.js';
@@ -403,7 +403,11 @@ function routesFor(service) {
             ...(url.searchParams.get('in') ? { freshInputTokens: Number(url.searchParams.get('in')) || 0 } : {}),
             ...(url.searchParams.get('cache') ? { cacheReadTokens: Number(url.searchParams.get('cache')) || 0 } : {}),
             ...(url.searchParams.get('out') ? { outputTokens: Number(url.searchParams.get('out')) || 0 } : {}),
+            ...(url.searchParams.get('write') ? { cacheWriteTokens: Number(url.searchParams.get('write')) || 0 } : {}),
           };
+          const windowKey = ['fiveHour', 'weekly', 'monthly'].includes(url.searchParams.get('window'))
+            ? url.searchParams.get('window')
+            : 'monthly';
           const data = decoratePricing(loadPricing(), profile);
           const remaining = service.snapshot?.credits?.totalRemaining ?? null;
           const windows = service.snapshot?.windows ?? null;
@@ -423,7 +427,16 @@ function routesFor(service) {
                   monthly: windows.monthly.cap ? windows.monthly.remaining / windows.monthly.cap : null,
                 }
               : null,
-            models: data.models,
+            windowKey,
+            // 每个模型在该窗口下的可跑次数：官方给次数就用官方口径，否则标 estimated
+            models: data.models.map((m) => {
+              const cap = capacityOf(remaining, m, profile, windowKey, windows ? windows[windowKey]?.remaining / windows[windowKey]?.cap : null);
+              return {
+                ...m,
+                remainingRequests: cap.requests,
+                remainingRequestsBasis: cap.basis,
+              };
+            }),
           });
         } catch (err) {
           WARN(`pricing failed: ${err.message}`);
