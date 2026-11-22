@@ -553,10 +553,14 @@ window.__ModuleLoader__.load({
     var css = `
 .ccq_root{height:100%;min-height:0;display:flex;flex-direction:column;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family);overflow:hidden}
 
-.ccq_head{flex:none;display:flex;align-items:center;gap:14px;padding:16px 22px 12px;flex-wrap:wrap}
-.ccq_headText{flex:1;min-width:0}
-.ccq_title{margin:0;font-size:18px;font-weight:650;letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ccq_sub{margin:2px 0 0;font-size:11.5px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 标题行的尺度照抄同宿主里「上下文洞察」面板：
+   顶部留白 + 20px/500 字重标题 + 右侧胶囊按钮，这样两个面板并排看是一套体系。 */
+.ccq_head{flex:none;display:flex;align-items:center;gap:14px;padding:0 22px;padding-top:calc(28px + var(--dsh-frame-top-clearance,0px));margin-bottom:24px;flex-wrap:wrap}
+/* 不吃满整行：按钮要紧挨标题，而不是被推到面板最右边 */
+.ccq_headText{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.ccq_title{flex:0 auto;min-width:0;margin:0 8px 0 0;font-size:20px;font-weight:500;line-height:28px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 副标题挪到标题下面一行，不再和标题抢同一行的高度 */
+.ccq_sub{margin:2px 0 0;font-size:11.5px;line-height:18px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ccq_headActions{flex:none;display:flex;align-items:center;gap:8px}
 .ccq_bannerText{min-width:0;overflow-wrap:anywhere}
 .ccq_hintTight{margin-top:4px}
@@ -758,7 +762,7 @@ window.__ModuleLoader__.load({
    这些覆盖必须放在样式表最后 —— 同 specificity 下后写的规则才生效。 */
 @media (max-width:720px){
   .ccq_statValue{font-size:26px}
-  .ccq_head{padding:14px 16px 10px;gap:10px}
+  .ccq_head{padding:0 16px;padding-top:calc(20px + var(--dsh-frame-top-clearance,0px));margin-bottom:18px;gap:8px}
   .ccq_tabs{padding:0 16px}
   .ccq_body{padding:16px 16px 24px;gap:14px}
   .ccq_hero{padding:14px 15px}
